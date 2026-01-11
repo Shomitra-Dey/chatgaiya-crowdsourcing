@@ -25,7 +25,7 @@ if 'submitted' not in st.session_state:
     st.session_state.submitted = False
 
 if 'sentences' not in st.session_state:
-    eligible = df[df['Usage_Count'] < 3]  # adjust limit (e.g. 3–5)
+    eligible = df[df['Usage_Count'] < 2]  # adjust limit (e.g. 3–5)
     if len(eligible) < 10:
         st.warning("পুলে পর্যাপ্ত বাক্য নেই। আরও যোগ করুন!")
         sampled = eligible.sample(min(10, len(eligible)))
