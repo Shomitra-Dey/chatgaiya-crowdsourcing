@@ -17,7 +17,7 @@ response_sheet = client.open("Chatgaiya_Dataset").worksheet("Responses")
 
 df = pd.DataFrame(pool_sheet.get_all_records())
 
-st.title("চট্টগ্রামের ভাষা সংরক্ষণে আপনার সাহায্য চাই! / Help Preserve Chatgaiya!")
+st.title("চট্টগ্রামের ভাষা সংরক্ষণে আপনার সাহায্য চাই / Help Preserve Chatgaiya!")
 st.markdown("নিচের ১০টি স্ট্যান্ডার্ড বাংলা বাক্য চটগাইয়ায় অনুবাদ করুন। যতটা সম্ভব স্বাভাবিকভাবে লিখুন।")
 
 # Initialize submitted flag
