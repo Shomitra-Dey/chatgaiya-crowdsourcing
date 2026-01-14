@@ -31,7 +31,7 @@ if 'submitted' not in st.session_state:
 
 # Load sentences only when needed (first load or after reset)
 if 'sentences' not in st.session_state:
-    eligible = df[df['Usage_Count'] < 2]  # you can change to 3, 5, etc.
+    eligible = df[df['Usage_Count'] < 1]  # you can change to 3, 5, etc.
     if len(eligible) < 10:
         st.warning("পুলে পর্যাপ্ত বাক্য নেই। আরও যোগ করুন!")
         sampled = eligible.sample(min(10, len(eligible)))
