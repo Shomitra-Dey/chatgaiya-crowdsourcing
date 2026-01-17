@@ -12,16 +12,22 @@ creds = Credentials.from_service_account_info(
 )
 client = gspread.authorize(creds)
 
-# Open the sheets (update names if needed)
+# Open the sheets
 pool_sheet = client.open("Chatgaiya_Sentence_Pool").worksheet("sentence_pool")
 response_sheet = client.open("Chatgaiya_Dataset").worksheet("Responses")
 
 df = pd.DataFrame(pool_sheet.get_all_records())
 
-st.title("চট্টগ্রামের ভাষা সংরক্ষণে আপনার সাহায্য চাই / Help Preserve Chatgaiya!")
+# NEW: Calculate total translated sentences
+total_translated = df['Usage_Count'].sum() if 'Usage_Count' in df.columns and not df.empty else 0
+
+st.title("চট্টগ্রামের ভাষা সংরক্ষণে আপনার সাহায্য চাই! / Help Preserve Chatgaiya!")
 st.markdown("নিচের ১০টি স্ট্যান্ডার্ড বাংলা বাক্য চটগাইয়ায় অনুবাদ করুন। যতটা সম্ভব স্বাভাবিকভাবে লিখুন।")
 
-# Unique form identifier to force fresh widget state every time
+# NEW: Show progress
+st.markdown(f"**এখন পর্যন্ত অনুবাদ হয়েছে: {total_translated} টি বাক্য** / **Total sentences translated so far: {total_translated}**")
+
+# Unique form identifier
 if 'form_id' not in st.session_state:
     st.session_state.form_id = random.randint(100000, 999999)
 
@@ -29,9 +35,9 @@ if 'form_id' not in st.session_state:
 if 'submitted' not in st.session_state:
     st.session_state.submitted = False
 
-# Load sentences only when needed (first load or after reset)
+# Load sentences
 if 'sentences' not in st.session_state:
-    eligible = df[df['Usage_Count'] < 1]  # you can change to 3, 5, etc.
+    eligible = df[df['Usage_Count'] < 1]
     if len(eligible) < 10:
         st.warning("পুলে পর্যাপ্ত বাক্য নেই। আরও যোগ করুন!")
         sampled = eligible.sample(min(10, len(eligible)))
@@ -40,7 +46,7 @@ if 'sentences' not in st.session_state:
     st.session_state.sentences = sampled['Sentence'].tolist()
     st.session_state.ids = sampled['ID'].tolist()
 
-# Translation input fields with UNIQUE keys based on form_id
+# Translation fields
 translations = []
 for i, sent in enumerate(st.session_state.sentences):
     unique_key = f"trans_{st.session_state.form_id}_{i}"
@@ -48,18 +54,17 @@ for i, sent in enumerate(st.session_state.sentences):
         label=f"{i+1}. {sent}",
         key=unique_key,
         height=100,
-        value="",  # Ensure empty start
+        value="",
         placeholder="এখানে চটগাইয়া অনুবাদ লিখুন..."
     )
     translations.append(trans)
 
-# Main submission logic
+# Submission logic
 if not st.session_state.submitted:
     if st.button("সাবমিট / Submit"):
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         rows_to_append = []
         has_translation = False
-
         for i in range(len(st.session_state.sentences)):
             sent_id = st.session_state.ids[i]
             std_sent = st.session_state.sentences[i]
@@ -67,27 +72,20 @@ if not st.session_state.submitted:
             if chat_sent:
                 rows_to_append.append([now, sent_id, std_sent, chat_sent])
                 has_translation = True
-
         if has_translation:
             response_sheet.append_rows(rows_to_append)
-
-            # Update usage count in pool
             for sent_id in st.session_state.ids:
                 row_idx = df[df['ID'] == sent_id].index[0] + 2
                 current = pool_sheet.cell(row_idx, 3).value or 0
                 pool_sheet.update_cell(row_idx, 3, int(current) + 1)
-
             st.success("ধন্যবাদ! আপনার অনুবাদ সফলভাবে সংরক্ষিত হয়েছে।")
             st.session_state.submitted = True
-            st.rerun()  # Force show the thank-you screen immediately
+            st.rerun()
         else:
             st.warning("কোনো অনুবাদ লেখা হয়নি। অন্তত একটা লিখুন।")
-
 else:
-    # Thank you screen with next action
     st.success("ধন্যবাদ! আপনার অনুবাদ সংরক্ষিত হয়েছে।")
     if st.button("আরেকটি সেট অনুবাদ করুন / Submit Another Set"):
-        # Full reset + new form_id to clear widget state
         for key in list(st.session_state.keys()):
             del st.session_state[key]
         st.session_state.form_id = random.randint(100000, 999999)
